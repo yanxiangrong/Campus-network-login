@@ -28,20 +28,21 @@ from webdriver_manager.core.utils import ChromeType
 
 CONF_FILE = './conf/user.json'  # 配置文件位置
 RUIJIE_LOGIN_URL = 'http://172.30.30.72/'  # 锐捷登录地址
-TEST_TIMEOUT_SEC = 10  # 网络连通性测试超时
-TEST_TIMEOUT_INTERVAL = 30  # 网络连通性测试间隔
+NETWORK_CHECK_TIMEOUT = 10  # 网络连通性测试超时
+NETWORK_CHECK_INTERVAL = 30  # 网络连通性测试间隔
 RUIJIE_LOGIN_INTERVAL = 600  # 锐捷登录最小间隔
 ALARM_INTERVAL = 10
 SCRIPT_TIMEOUT = 30  # 浏览器执行脚本超时
 PAGE_LOAD_TIMEOUT = 300  # 浏览器加载页面超时
-IMPLICIT_WAIT_TIME_OUT = 300  # 浏览器隐式等待超时
-CONNECT_TEST_URL = 'http://www.msftconnecttest.com/connecttest.txt'  # 网络连通性测试超时地址
-CONNECT_TEST_CONTENT = b'Microsoft Connect Test'  # 网络连通性测试内容
+IMPLICIT_WAIT_TIMEOUT = 300  # 浏览器隐式等待超时
+NETWORK_CHECK_URL = 'http://www.msftconnecttest.com/connecttest.txt'  # 网络连通性测试超时地址
+NETWORK_CHECK_CONTENT = b'Microsoft Connect Test'  # 网络连通性测试内容
 LOG_LEVEL = logging.INFO  # 控制台日志级别
 LOG_FILE_LEVEL = logging.DEBUG  # 日志文件日志级别
 LOG_FILE_FORMAT = '%(levelname)s:%(asctime)s:%(name)s:%(message)s'
 LOG_FILE = 'logs/ruijie-login.log'  # 日志文件位置
 DRIVER_DIR = '.'  # 驱动程序位置
+DRIVER_CHECK_INTERVAL = 1800
 DEBUG = False  # 为 False 时不会显示浏览器窗口
 
 logger = logging.getLogger()
@@ -67,6 +68,7 @@ logger = logging.getLogger()
 #     return options
 
 
+# 日志文件处理器
 class MyLogFileHandler(FileHandler):
     def __init__(self, filename: str):
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
@@ -75,12 +77,14 @@ class MyLogFileHandler(FileHandler):
         self.setFormatter(logging.Formatter(LOG_FILE_FORMAT))
 
 
+# 日志输出流处理器
 class MyLogStreamHandler(StreamHandler):
     def __init__(self):
         super().__init__(sys.stdout)
         self.setLevel(LOG_LEVEL)
 
     def format(self, record: LogRecord) -> str:
+        # 为日志增加颜色
         match record.levelno:
             case logging.DEBUG:
                 prefix = '\033[32m'
@@ -100,6 +104,7 @@ class MyLogStreamHandler(StreamHandler):
         return f'{prefix}{super().format(record)}{suffix}'
 
 
+# 用户信息类
 class User:
     username: str
     password: str
@@ -108,7 +113,7 @@ class User:
     def __init__(self, user_name='', passwd='', user_type=0):
         self.username = user_name
         self.password = passwd
-        self.userType = user_type
+        self.userType = user_type  # 0 为教师 1 为学生 2 为临时人员
         if user_type not in [0, 1, 2]:
             logger.error('Illegal user_type')
 
@@ -137,6 +142,7 @@ class MyChromeControl:
         self.driver = webdriver.Chrome(service=ChromiumService(self.driver_path), options=self.options)
         self.logger.info(f'Browser name: {self.driver.name}')
 
+    # 安装驱动，如果驱动已经安装，直接返回驱动路径
     def install_driver(self):
         for browser in [ChromeType.GOOGLE, ChromeType.CHROMIUM, ChromeType.MSEDGE, ChromeType.BRAVE]:
             driver_manager = ChromeDriverManager(path=DRIVER_DIR, chrome_type=browser)
@@ -153,6 +159,7 @@ class MyChromeControl:
         self.driver_path = driver_manager.install()
         self.logger.debug(f'Driver path: {self.driver_path}')
 
+    # 退出浏览器
     def quit(self):
         self.logger.debug('Quit')
         if self.driver is not None:
@@ -203,7 +210,7 @@ class MyChromeControl:
         self.logger.debug(f'Logout')
         to_log_out = self.find_element_by_id("toLogOut")
         to_log_out.click()
-        alert: Alert = WebDriverWait(self.driver, IMPLICIT_WAIT_TIME_OUT).until(expected_conditions.alert_is_present())
+        alert: Alert = WebDriverWait(self.driver, IMPLICIT_WAIT_TIMEOUT).until(expected_conditions.alert_is_present())
         alert.accept()
 
     def automatic_login(self, user: User):
@@ -223,7 +230,7 @@ class MyChromeControl:
             self.submit_login_info(user)
 
             try:
-                is_login: bool = WebDriverWait(self.driver, IMPLICIT_WAIT_TIME_OUT).until(
+                is_login: bool = WebDriverWait(self.driver, IMPLICIT_WAIT_TIMEOUT).until(
                     expected_conditions.title_is('登录成功'))
                 if is_login:
                     result = True
@@ -241,6 +248,7 @@ class MyApp:
     eventQue: queue.Queue
     user: User
     lastCheckNetwork: int
+    lastCheckDriver: int
     lastLogin: int
 
     def __init__(self):
@@ -256,9 +264,17 @@ class MyApp:
     def alarm_handler(self, _signum, _frame):
         self.eventQue.put('ALARM')
 
+    def check_driver_tick(self):
+        logger.info('Check driver')
+        now = int(time.time())
+        if now - self.lastCheckDriver < DRIVER_CHECK_INTERVAL:
+            return
+        self.lastCheckDriver = now
+        MyChromeControl().install_driver()
+
     def check_network_tick(self):
         now = int(time.time())
-        if now - self.lastCheckNetwork < TEST_TIMEOUT_INTERVAL:
+        if now - self.lastCheckNetwork < NETWORK_CHECK_INTERVAL:
             return
         self.lastCheckNetwork = now
 
@@ -271,6 +287,7 @@ class MyApp:
                 logger.warning('Ruijie website is unavailable')
         else:
             logger.info('Network is OK')
+            self.check_driver_tick()
             if DEBUG:
                 self.ruijie_login()
                 # input()
@@ -336,7 +353,7 @@ class MyApp:
         self.user = load_user()
         logger.info(f'User: {self.user.username}, {self.user.password}, {self.user.userType}')
 
-        MyChromeControl().install_driver()
+        self.check_driver_tick()
 
         if sys.platform == 'win32':
             logger.warning('Running on Windows is not recommended')
@@ -350,8 +367,8 @@ class MyApp:
 # 测试互联网是否连接
 def is_network_connect():
     try:
-        status = requests.get(CONNECT_TEST_URL, timeout=TEST_TIMEOUT_SEC, allow_redirects=False)
-        if status.content == CONNECT_TEST_CONTENT:
+        status = requests.get(NETWORK_CHECK_URL, timeout=NETWORK_CHECK_TIMEOUT, allow_redirects=False)
+        if status.content == NETWORK_CHECK_CONTENT:
             return True
         else:
             return False
@@ -365,7 +382,7 @@ def is_network_connect():
 
 def is_ruijie_connect():
     try:
-        requests.get(RUIJIE_LOGIN_URL, timeout=TEST_TIMEOUT_SEC, allow_redirects=False)
+        requests.get(RUIJIE_LOGIN_URL, timeout=NETWORK_CHECK_TIMEOUT, allow_redirects=False)
     except (requests.ConnectionError,
             requests.HTTPError,
             requests.ConnectTimeout,
@@ -385,7 +402,7 @@ def my_chrome_options():
         options.add_argument('--headless')  # 无界面
     options.add_argument('--window-size=1920x1080')  # 设置浏览器分辨率（窗口大小）
     options.accept_insecure_certs = True
-    options.timeouts = {"implicit": IMPLICIT_WAIT_TIME_OUT * 1000,
+    options.timeouts = {"implicit": IMPLICIT_WAIT_TIMEOUT * 1000,
                         "pageLoad": PAGE_LOAD_TIMEOUT * 1000,
                         "script": SCRIPT_TIMEOUT * 1000}
     return options
