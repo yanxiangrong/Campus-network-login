@@ -213,6 +213,7 @@ class MyChromeControl:
         alert: Alert = WebDriverWait(self.driver, IMPLICIT_WAIT_TIMEOUT).until(expected_conditions.alert_is_present())
         alert.accept()
 
+    # 自动化登录流程
     def automatic_login(self, user: User):
         if self.driver is None:
             self.start_browser()
@@ -254,6 +255,7 @@ class MyApp:
     def __init__(self):
         self.eventQue = queue.Queue()
         self.lastCheckNetwork = 0
+        self.lastCheckDriver = 0
         self.lastLogin = 0
 
     def sig_handler(self, signum, _frame):
@@ -321,8 +323,9 @@ class MyApp:
         signal.signal(signal.SIGTERM, self.sig_handler)
 
         signal.signal(signal.SIGALRM, self.alarm_handler)
-        signal.setitimer(signal.ITIMER_REAL, 0, ALARM_INTERVAL)
+        signal.setitimer(signal.ITIMER_REAL, ALARM_INTERVAL, ALARM_INTERVAL)
 
+        self.alarm_handler(None, None)
         self.event_loop()
 
     def run_forever_win32(self):

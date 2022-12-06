@@ -15,22 +15,43 @@
     apt install chromium chromium-l10n
     ```
 2. 安装 python 依赖
-   ```shell
-   pip install -r requirements.txt
-   ```
+    ```shell
+    pip install -r requirements.txt
+    ```
 
 3. 填写账号信息  
    打开`conf/user.json`，参考下面内容编辑 (实际填写不能包含注释)。
-   ```json
-   {
-     "username": "xxx", // 用户名
-     "password": "xxx", // 密码
-     "type": 1 // 账号类型, 0: 教师, 1: 学生, 2: 临时
-   }
-   ```
-4. 下载驱动  
+    ```json
+    {
+      "username": "xxx", // 用户名
+      "password": "xxx", // 密码
+      "type": 1 // 账号类型, 0: 教师, 1: 学生, 2: 临时
+    }
+    ```
+4. 安装驱动  
    在连接互联网的环境下运行 `main.py` 会自动下载驱动。  
    **注意**：驱动版本和浏览器版本必须一致，程序在自动下载驱动时会检测浏览器版本并下载对应版本驱动。如果浏览器更新，需要重新运行此程序下载驱动
+
+
+5. 设置开机自启
+   在 `/usr/lib/systemd/system/` 下面新建一个 `ruijie-login.service`文件，内容参考如下：
+    ```editorconfig
+    [Unit]
+    Description=锐捷校园网自动登录程序
+    After=network.target
+    Wants=network.target
+    
+    [Service]
+    Type=simple
+    User=nobody
+    # python 文件位置需要更改为实际位置
+    ExecStart=python ruijie-login/main.py
+    Restart=on-failure
+    RestartSec=600s
+    
+    [Install]
+    WantedBy=multi-user.target
+    ```
 
 ## 运行
 
