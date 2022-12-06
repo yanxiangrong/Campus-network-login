@@ -268,10 +268,10 @@ class MyApp:
 
     # 检查和更新驱动
     def check_driver_tick(self):
-        logger.info('Check driver')
         now = int(time.time())
         if now - self.lastCheckDriver < DRIVER_CHECK_INTERVAL:
             return
+        logger.info('Check driver')
         self.lastCheckDriver = now
         MyChromeControl().install_driver()
 
