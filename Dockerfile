@@ -7,7 +7,7 @@ COPY main.py main.py
 COPY requirements.txt requirements.txt
 COPY conf/ conf/
 
-RUN apt update && apt upgrade -y && apt install -y chromium chromium-l10n
+RUN apt-get update && apt-get upgrade -y --fix-missing && apt-get install -y chromium chromium-l10n --fix-missing
 
 RUN python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
