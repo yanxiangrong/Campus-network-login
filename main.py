@@ -264,6 +264,7 @@ class MyApp:
     def alarm_handler(self, _signum, _frame):
         self.eventQue.put('ALARM')
 
+    # 检查和更新驱动
     def check_driver_tick(self):
         logger.info('Check driver')
         now = int(time.time())
@@ -324,13 +325,6 @@ class MyApp:
 
         self.event_loop()
 
-        signal.signal(signal.SIGHUP, None)
-        signal.signal(signal.SIGQUIT, None)
-        signal.signal(signal.SIGINT, None)
-        signal.signal(signal.SIGTERM, None)
-        signal.signal(signal.SIGALRM, None)
-        signal.setitimer(signal.ITIMER_REAL, 0, 0)
-
     def run_forever_win32(self):
         signal.signal(signal.SIGINT, self.sig_handler)
         signal.signal(signal.SIGTERM, self.sig_handler)
@@ -343,9 +337,6 @@ class MyApp:
             except queue.Empty:
                 self.alarm_handler(None, None)
 
-        signal.signal(signal.SIGINT, None)
-        signal.signal(signal.SIGTERM, None)
-
     def run(self):
         logger.info(f'Selenium version: {selenium.__version__}')
         logger.info(f'Platform: {sys.platform}')
@@ -353,6 +344,7 @@ class MyApp:
         self.user = load_user()
         logger.info(f'User: {self.user.username}, {self.user.password}, {self.user.userType}')
 
+        # 检查驱动
         self.check_driver_tick()
 
         if sys.platform == 'win32':
@@ -423,6 +415,7 @@ def main():
         MyLogFileHandler(LOG_FILE),
         MyLogStreamHandler()
     ]
+    # 请勿在此处更改日志级别
     logging.basicConfig(level=logging.NOTSET, handlers=log_handlers)
     logging.captureWarnings(True)
 
