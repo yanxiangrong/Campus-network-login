@@ -1,0 +1,7 @@
+version: "3.9"
+services:
+  ruijie-login:
+    build: .
+    volumes:
+      - ./conf/:/app/conf/
+      - ./logs/:/app/logs/
