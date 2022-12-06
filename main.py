@@ -161,8 +161,8 @@ class MyChromeControl:
 
     # 退出浏览器
     def quit(self):
-        self.logger.debug('Quit')
         if self.driver is not None:
+            self.logger.debug('Quit')
             self.driver.quit()
             self.driver = None
 
