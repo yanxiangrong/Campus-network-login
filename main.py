@@ -45,7 +45,7 @@ LOG_FILE = 'logs/ruijie-login.log'  # 日志文件位置
 DRIVER_DIR = '.'  # 驱动程序位置
 DRIVER_CHECK_INTERVAL = 1800
 DEBUG = False  # 为 False 时不会显示浏览器窗口
-MIN_PYTHON_VERSION = 0x030A00F0
+MIN_PYTHON_VERSION = 0x030A00F0  # 最低要求 Python 解释器版本
 
 logger = logging.getLogger()
 
