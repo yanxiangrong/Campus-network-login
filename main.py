@@ -231,18 +231,16 @@ class MyChromeControl:
             self.open_page(RUIJIE_LOGIN_URL)
             self.logger.debug(f'Page title: {self.driver.title}')
 
-            if self.driver.title == '登录成功':
-                if self.logout():
-                    re_login = self.find_element_by_id("offlineDiv")  # 重新登录
-                    re_login.click()
+            if self.driver.title == '登录成功' and self.logout():
+                re_login = self.find_element_by_id("offlineDiv")  # 重新登录
+                re_login.click()
 
             self.submit_login_info(user)
 
             try:
                 is_login: bool = WebDriverWait(self.driver, IMPLICIT_WAIT_TIMEOUT).until(
                     expected_conditions.title_is('登录成功'))
-                if is_login:
-                    result = True
+                result = is_login
             except TimeoutException:
                 pass
 
