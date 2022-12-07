@@ -1,9 +1,8 @@
 import json
 import logging
+import platform
 import queue
 import signal
-import sys
-import time
 from logging import FileHandler
 from logging import LogRecord
 from logging import StreamHandler
@@ -11,6 +10,8 @@ from pathlib import Path
 
 import requests
 import selenium
+import sys
+import time
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
@@ -44,6 +45,7 @@ LOG_FILE = 'logs/ruijie-login.log'  # 日志文件位置
 DRIVER_DIR = '.'  # 驱动程序位置
 DRIVER_CHECK_INTERVAL = 1800
 DEBUG = False  # 为 False 时不会显示浏览器窗口
+MIN_PYTHON_VERSION = 0x030A00F0
 
 logger = logging.getLogger()
 
@@ -153,7 +155,7 @@ class MyChromeControl:
             break
 
         if driver_manager is None:
-            self.logger.critical('No supported browsers found')
+            self.logger.fatal('No supported browsers found')
             sys.exit(-1)
 
         self.driver_path = driver_manager.install()
@@ -347,9 +349,6 @@ class MyApp:
         self.user = load_user()
         logger.info(f'User: {self.user.username}, {self.user.password}, {self.user.userType}')
 
-        # 检查驱动
-        self.check_driver_tick()
-
         if sys.platform == 'win32':
             logger.warning('Running on Windows is not recommended')
             self.run_forever_win32()
@@ -413,6 +412,13 @@ def load_user() -> User:
     return user
 
 
+def check_python_version():
+    if sys.hexversion < MIN_PYTHON_VERSION:
+        logger.fatal(f'Error: The python version ({platform.python_version()}) '
+                     'is lower than the minimum required version (3.10.0)')
+        sys.exit(-1)
+
+
 def main():
     log_handlers = [
         MyLogFileHandler(LOG_FILE),
@@ -421,6 +427,8 @@ def main():
     # 请勿在此处更改日志级别
     logging.basicConfig(level=logging.NOTSET, handlers=log_handlers)
     logging.captureWarnings(True)
+
+    check_python_version()
 
     MyApp().run()
 
