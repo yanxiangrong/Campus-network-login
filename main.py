@@ -212,8 +212,14 @@ class MyChromeControl:
         self.logger.debug(f'Logout')
         to_log_out = self.find_element_by_id("toLogOut")
         to_log_out.click()
-        alert: Alert = WebDriverWait(self.driver, IMPLICIT_WAIT_TIMEOUT).until(expected_conditions.alert_is_present())
+        try:
+            alert: Alert = WebDriverWait(self.driver, IMPLICIT_WAIT_TIMEOUT).until(
+                expected_conditions.alert_is_present())
+        except TimeoutException:
+            logger.warning('Logout Fail')
+            return False
         alert.accept()
+        return True
 
     # 自动化登录流程
     def automatic_login(self, user: User):
@@ -226,9 +232,9 @@ class MyChromeControl:
             self.logger.debug(f'Page title: {self.driver.title}')
 
             if self.driver.title == '登录成功':
-                self.logout()
-                re_login = self.find_element_by_id("offlineDiv")  # 重新登录
-                re_login.click()
+                if self.logout():
+                    re_login = self.find_element_by_id("offlineDiv")  # 重新登录
+                    re_login.click()
 
             self.submit_login_info(user)
 
