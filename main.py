@@ -7,6 +7,7 @@ from logging import FileHandler
 from logging import LogRecord
 from logging import StreamHandler
 from pathlib import Path
+from typing import Union
 
 import requests
 import selenium
@@ -45,7 +46,7 @@ LOG_FILE = 'logs/ruijie-login.log'  # 日志文件位置
 DRIVER_DIR = '.'  # 驱动程序位置
 DRIVER_CHECK_INTERVAL = 1800
 DEBUG = False  # 为 False 时不会显示浏览器窗口
-MIN_PYTHON_VERSION = 0x030A00F0  # 最低要求 Python 解释器版本
+MIN_PYTHON_VERSION = 0x030800F0  # 最低要求 Python 解释器版本
 
 logger = logging.getLogger()
 
@@ -87,22 +88,21 @@ class MyLogStreamHandler(StreamHandler):
 
     def format(self, record: LogRecord) -> str:
         # 为日志增加颜色
-        match record.levelno:
-            case logging.DEBUG:
-                prefix = '\033[32m'
-                suffix = '\033[0m'
-            case logging.WARNING:
-                prefix = '\033[33m'
-                suffix = '\033[0m'
-            case logging.ERROR:
-                prefix = '\033[31m'
-                suffix = '\033[0m'
-            case logging.FATAL:
-                prefix = '\033[1m\033[31m'
-                suffix = '\033[0m'
-            case _:
-                prefix = ''
-                suffix = ''
+        if record.levelno == logging.DEBUG:
+            prefix = '\033[32m'
+            suffix = '\033[0m'
+        elif record.levelno == logging.WARNING:
+            prefix = '\033[33m'
+            suffix = '\033[0m'
+        elif record.levelno == logging.ERROR:
+            prefix = '\033[31m'
+            suffix = '\033[0m'
+        elif record.levelno == logging.FATAL:
+            prefix = '\033[1m\033[31m'
+            suffix = '\033[0m'
+        else:
+            prefix = ''
+            suffix = ''
         return f'{prefix}{super().format(record)}{suffix}'
 
 
@@ -122,9 +122,9 @@ class User:
 
 class MyChromeControl:
     options: ChromeOptions
-    driver: ChromiumDriver | None = None
+    driver: Union[ChromiumDriver, None] = None
     logger: logging.Logger
-    driver_path: str | None
+    driver_path: Union[str, None]
 
     def __init__(self):
         self.logger = logging.getLogger('MyChromeControl')
@@ -314,13 +314,13 @@ class MyApp:
             logger.warning('Ruijie login fail')
         control.quit()
 
-    def event_loop(self, timeout: float | None = None):
+    def event_loop(self, timeout: Union[float, None] = None):
         while True:
-            match self.eventQue.get(timeout=timeout):
-                case 'EXIT':
-                    break
-                case 'ALARM':
-                    self.check_network_tick()
+            event: str = self.eventQue.get(timeout=timeout)
+            if event == 'EXIT':
+                break
+            elif event == 'ALARM':
+                self.check_network_tick()
 
     def run_forever(self):
         signal.signal(signal.SIGHUP, self.sig_handler)
@@ -419,7 +419,10 @@ def load_user() -> User:
 def check_python_version():
     if sys.hexversion < MIN_PYTHON_VERSION:
         logger.fatal(f'Error: The python version ({platform.python_version()}) '
-                     'is lower than the minimum required version (3.10.0)')
+                     'is lower than the minimum required version '
+                     f'({(MIN_PYTHON_VERSION & 0xFF000000) >> 24}.'
+                     f'{(MIN_PYTHON_VERSION & 0x00FF0000) >> 16}.'
+                     f'{(MIN_PYTHON_VERSION & 0x0000FF00) >> 8})')
         sys.exit(-1)
 
 
