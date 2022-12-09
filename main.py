@@ -45,8 +45,9 @@ LOG_FILE_FORMAT = '%(levelname)s:%(asctime)s:%(name)s:%(message)s'
 LOG_FILE = 'logs/ruijie-login.log'  # 日志文件位置
 DRIVER_DIR = '.'  # 驱动程序位置
 DRIVER_CHECK_INTERVAL = 1800
-DEBUG = False  # 为 False 时不会显示浏览器窗口
 MIN_PYTHON_VERSION = 0x030800F0  # 最低要求 Python 解释器版本
+USE_SYSTEM_DRIVER = False
+DEBUG = False  # 为 False 时不会显示浏览器窗口
 
 logger = logging.getLogger()
 
@@ -136,12 +137,17 @@ class MyChromeControl:
         self.quit()
 
     def start_browser(self):
-        if self.driver_path is None:
+        if self.driver_path is None and not USE_SYSTEM_DRIVER:
             self.install_driver()
 
         self.logger.info('Start browser')
 
-        self.driver = webdriver.Chrome(service=ChromiumService(self.driver_path), options=self.options)
+        if USE_SYSTEM_DRIVER:
+            service = ChromiumService()
+        else:
+            service = ChromiumService(self.driver_path)
+
+        self.driver = webdriver.Chrome(service=service, options=self.options)
         self.logger.info(f'Browser name: {self.driver.name}')
 
     # 安装驱动，如果驱动已经安装，直接返回驱动路径
@@ -296,7 +302,8 @@ class MyApp:
                 logger.warning('Ruijie website is unavailable')
         else:
             logger.info('Network is OK')
-            self.check_driver_tick()
+            if not USE_SYSTEM_DRIVER:
+                self.check_driver_tick()
             if DEBUG:
                 self.ruijie_login()
                 # input()
