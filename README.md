@@ -4,7 +4,7 @@
 
 ## 要求
 
-* python >= 3.10
+* python >= 3.8
 * 安装有 google-chrome (推荐) 或者 chromium, edge (未测试), brave-browser (未测试)
 * Linux (推荐) 或 windows 10 以上
 
@@ -59,7 +59,7 @@
     WantedBy=multi-user.target
     ```
     ```shell
-    systemctl reload
+    systemctl daemon-reload
     systemctl enable --now ruijie-login.service
     ```
 
