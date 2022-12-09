@@ -256,6 +256,30 @@ class MyChromeControl:
         self.driver.close()
         return result
 
+    def test_driver(self):
+        self.logger.info('Test driver')
+        if self.driver is None:
+            self.start_browser()
+        try:
+            self.open_page(NETWORK_CHECK_URL)
+            self.logger.debug(f'Page title: {self.driver.title}')
+            if self.driver.find_element(By.XPATH, '//body/pre').text == NETWORK_CHECK_CONTENT.decode():
+                logger.info('Test driver success')
+                self.driver.close()
+                return self
+
+        except TimeoutException as err:
+            logger.error(err)
+            logger.warning('Test driver fail')
+            self.driver.close()
+        except WebDriverException as err:
+            logger.exception(err)
+            logger.error('Test driver fail')
+            self.driver.quit()
+            sys.exit(-1)
+        logger.error('Test driver fail')
+        return self
+
 
 class MyApp:
     eventQue: queue.Queue
@@ -359,6 +383,8 @@ class MyApp:
 
         self.user = load_user()
         logger.info(f'User: {self.user.username}, {self.user.password}, {self.user.userType}')
+
+        MyChromeControl().test_driver().quit()
 
         if sys.platform == 'win32':
             logger.warning('Running on Windows is not recommended')
