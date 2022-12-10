@@ -49,9 +49,10 @@
     
     [Service]
     Type=simple
-    User=nobody
     # python 文件位置需要更改为实际位置
-    ExecStart=python ruijie-login/main.py
+    User=user
+    WorkingDirectory=/home/user/Campus-network-login/
+    ExecStart=python main.py
     Restart=on-failure
     RestartSec=600s
     
